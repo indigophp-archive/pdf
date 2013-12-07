@@ -77,7 +77,24 @@ class Tcpdf extends Driver
 
         $this->instance->AddPage($orientation, $page_size);
 
-        if (is_file($input)) {
+        return $this->write($input);
+    }
+
+    public function addToc(array $options = array())
+    {
+        $options = array_merge($this->page_options, $options);
+
+        $orientation = array_key_exists('orientation', $options) ? $options['orientation'] : '';
+        $page_size = array_key_exists('page-size', $options) ? $options['page-size'] : '';
+
+        $this->instance->AddPage($orientation, $page_size, false, true);
+
+        return $this->write($input);
+    }
+
+    public function write($input)
+    {
+        if (is_file($input) or preg_match('/(https?|file):\/\//', $input)) {
             $input = file_get_contents($input);
         }
 

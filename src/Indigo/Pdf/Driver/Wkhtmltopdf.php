@@ -3,6 +3,7 @@
 namespace Indigo\Pdf\Driver;
 
 use Indigo\Pdf\Driver;
+use Symfony\Component\Process\Process;
 
 class Wkhtmltopdf extends Driver
 {
@@ -88,7 +89,7 @@ class Wkhtmltopdf extends Driver
 
     public function raw()
     {
-        
+        return file_get_contents($this->getPdf());
     }
 
     public function addPage($input, array $options = array())
@@ -100,6 +101,30 @@ class Wkhtmltopdf extends Driver
         return $this;
     }
 
+    public function addToc(array $options = array())
+    {
+        $options = array_merge($this->page_options, $options);
+        // $options['input'] = ($this->version9 ? '--' : '')."toc";
+        $options['input'] = "toc";
+        $this->pages[] = $options;
+    }
+
+    public function write($input)
+    {
+        $page = end($this->pages);
+
+        if (in_array($page['input'], $this->tmpFiles)) {
+            $content = file_get_contents($page['input']);
+            $content .= $this->isHtml($input) ? $input : file_get_contents($input);
+            file_put_contents($page['input'], $content);
+            array_pop($this->pages);
+            $this->pages[] = $page;
+        } else {
+            return $this->addPage($input);
+        }
+        return $this;
+    }
+
     /**
      * Create a tmp file, optionally with given content
      *
@@ -108,8 +133,7 @@ class Wkhtmltopdf extends Driver
      */
     protected function createTmpFile($content = null)
     {
-        // $tmpPath = $this->getConfig('tmp', sys_get_temp_dir());
-        $tmpPath = sys_get_temp_dir();
+        $tmpPath = $this->getConfig('tmp', sys_get_temp_dir());
         $tmpFile = tempnam($tmpPath,'tmp_WkHtmlToPdf_');
 
         if ( ! is_null($content)) {
@@ -124,7 +148,7 @@ class Wkhtmltopdf extends Driver
 
     protected function escapeCommand($command)
     {
-        if (true) {
+        if ($this->getConfig('escape', true)) {
             $command = escapeshellarg($command);
         }
 
@@ -148,7 +172,7 @@ class Wkhtmltopdf extends Driver
 
     public function buildCommand($file)
     {
-        $command = $this->escapeCommand('/usr/bin/wkhtmltopdf');
+        $command = $this->escapeCommand($this->getConfig('bin', '/usr/bin/wkhtmltopdf'));
         $command .= ' ' . $this->buildOptions($this->options);
 
         foreach ($this->pages as $page) {
@@ -160,31 +184,28 @@ class Wkhtmltopdf extends Driver
         return $command . ' ' . $file;
     }
 
-    public function render($force = false)
+    public function render()
     {
-        if ( ! empty($this->tmpFile) and $force === false) {
-            return $this->tmpFile;
-        }
-
         $tmpFile = $this->createTmpFile();
         $command = $this->buildCommand($tmpFile);
 
-        $descriptors = array(
-            0 => ['pipe', 'r'],
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        );
-        $result = null;
+        $process = new Process($command);
+        $process->setTimeout(3600);
+        $process->run();
 
-        $process = proc_open($command, $descriptors, $pipes, null, null, array('bypass_shell'=>true));
-
-        if (is_resource($process)) {
-            $stderr = stream_get_contents($pipes[2]);
-            fclose($pipes[2]);
-
-            $result = proc_close($process);
+        if ( ! $process->isSuccessful()) {
+            if ( ! file_exists($tmpFile) or filesize($tmpFile) === 0) {
+                throw new \RuntimeException('Could not run command:' . $process->getErrorOutput());
+            } else {
+                throw new \Exception('Error occured while creating PDF.');
+            }
         }
 
-        return $result === 0 ? $this->tmpFile = $tmpFile : false;
+        return $process->isSuccessful() ? $this->tmpFile = $tmpFile : false;
+    }
+
+    protected function getPdf()
+    {
+        return $this->tmpFile ?: $this->render();
     }
 }
