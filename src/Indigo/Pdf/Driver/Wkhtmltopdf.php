@@ -117,8 +117,6 @@ class Wkhtmltopdf extends Driver
             $content = file_get_contents($page['input']);
             $content .= $this->isHtml($input) ? $input : file_get_contents($input);
             file_put_contents($page['input'], $content);
-            array_pop($this->pages);
-            $this->pages[] = $page;
         } else {
             return $this->addPage($input);
         }
