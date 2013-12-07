@@ -1,0 +1,32 @@
+{
+    "name": "indigophp/pdf",
+    "description": "PDF adapter for PDF libraries",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Márk Sági-Kazár",
+            "email": "mark.sagikazar@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=5.3.0"
+    },
+    "require-dev": {
+        "tecnick.com/tcpdf": "dev-master",
+        "dompdf/dompdf": "dev-master",
+        "mpdf/mpdf": "dev-master",
+        "mikehaertl/phpwkhtmltopdf": "dev-master",
+        "h4cc/wkhtmltopdf-amd64": "dev-master",
+        "symfony/process": "2.5.*@dev"
+    },
+    "suggest": {
+        "tecnick.com/tcpdf": "TCPDF is a PHP class for generating PDF documents",
+        "dompdf/dompdf": "DOMPDF is a CSS 2.1 compliant HTML to PDF converter",
+        "mpdf/mpdf": "A PHP class to generate PDF files from HTML with Unicode/UTF-8 and CJK support",
+        "mikehaertl/phpwkhtmltopdf": "A slim PHP wrapper around wkhtmltopdf with an easy to use and clean OOP interface"
+    },
+    "autoload": {
+        "psr-0": {"Indigo\\Pdf\\": "src/"}
+    }
+}
