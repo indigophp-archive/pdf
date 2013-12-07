@@ -6,3 +6,4 @@
 ###Composer###
 tests/
 vendor/
+composer.lock
