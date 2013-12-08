@@ -18,12 +18,106 @@ class Wkhtmltopdf extends Driver
         'tmp'      => '/tmp',
         'escape'   => true,
         'version9' => false, //?
-        'options'  => array(
-            'orientation' => 'Portrait',
-            'page-size'   => 'A4',
-            'encoding'    => 'UTF-8',
+    );
+
+    protected $mapOptions = array(
+        'orientation' => array(
+            array('P', 'L'),
+            array('Portrait', 'Landscape'),
         ),
-        'page_options' => array(),
+    );
+
+    private $validOptions = array(
+        'dpi',
+        'grayscale',
+        'image-dpi',
+        'image-quality',
+        'lowquality',
+        'margin-bottom',
+        'margin-left',
+        'margin-right',
+        'margin-top',
+        'orientation',
+        'output-format',
+        'page-height',
+        'page-size',
+        'page-width',
+        'no-pdf-compression',
+        'title',
+    );
+
+    private $validPageOptions = array(
+        'footer-center',
+        'footer-font-name',
+        'footer-font-size',
+        'footer-html',
+        'footer-left',
+        'footer-line',
+        'no-footer-line',
+        'footer-right',
+        'footer-spacing',
+        'header-center',
+        'header-font-name',
+        'header-font-size',
+        'header-html',
+        'header-left',
+        'header-line',
+        'no-header-line',
+        'header-right',
+        'header-spacing',
+        'replace',
+        'allow',
+        'background',
+        'no-background',
+        'checkbox-checked-svg',
+        'checkbox-svg',
+        'cookie',
+        'custom-header',
+        'custom-header-propagation',
+        'no-custom-header-propagation',
+        'debug-javascript',
+        'no-debug-javascript',
+        'default-header',
+        'encoding',
+        'disable-external-links',
+        'enable-external-links',
+        'disable-forms',
+        'enable-forms',
+        'images',
+        'no-images',
+        'disable-internal-links',
+        'enable-internal-links',
+        'disable-javascript',
+        'enable-javascript',
+        'javascript-delay',
+        'load-error-handling',
+        'disable-local-file-access',
+        'enable-local-file-access',
+        'minimum-font-size',
+        'exclude-from-outline',
+        'include-in-outline',
+        'page-offset',
+        'password',
+        'disable-plugins',
+        'enable-plugins',
+        'post',
+        'post-file',
+        'print-media-type',
+        'no-print-media-type',
+        'proxy',
+        'radiobutton-checked-svg',
+        'radiobutton-svg',
+        'run-script',
+        'disable-smart-shrinking',
+        'enable-smart-shrinking',
+        'stop-slow-scripts',
+        'no-stop-slow-scripts',
+        'disable-toc-back-links',
+        'enable-toc-back-links',
+        'user-style-sheet',
+        'username',
+        'window-status',
+        'zoom',
     );
 
     /**
@@ -94,7 +188,7 @@ class Wkhtmltopdf extends Driver
 
     public function addPage($input, array $options = array())
     {
-        $options = array_merge($this->page_options, $options);
+        $options = array_merge($this->pageOptions, $options);
         $options['input'] = $this->isHtml($input) ? $this->createTmpFile($input) : $input;
         $this->pages[] = $options;
 
@@ -103,7 +197,7 @@ class Wkhtmltopdf extends Driver
 
     public function addToc(array $options = array())
     {
-        $options = array_merge($this->page_options, $options);
+        $options = array_merge($this->pageOptions, $options);
         // $options['input'] = ($this->version9 ? '--' : '')."toc";
         $options['input'] = "toc";
         $this->pages[] = $options;
@@ -153,33 +247,60 @@ class Wkhtmltopdf extends Driver
         return $command;
     }
 
-    protected function buildOptions($options)
+    /**
+     * Build command string
+     * @param  string $file filename
+     * @return string       command string
+     */
+    public function buildCommand($file)
+    {
+        $command = $this->escapeCommand($this->getConfig('bin', '/usr/bin/wkhtmltopdf'));
+        $command .= $this->buildOptions($this->options, $this->validOptions);
+        $command .= $this->buildOptions($this->pageOptions, $this->validPageOptions);
+
+        foreach ($this->pages as $page) {
+            $command .= ' ' . $page['input'];
+            unset($page['input']);
+            $command .= $this->buildOptions($page, $this->validPageOptions);
+        }
+
+        return $command . ' ' . $file;
+    }
+
+    /**
+     * Build command line options from array
+     * @param  array  $options      Input parameters
+     * @param  array  $validOptions Valid parameter names
+     * @return string               argument string
+     */
+    protected function buildOptions(array $options = array(), array $validOptions = array())
     {
         $output = '';
-
         foreach ($options as $key => $value) {
+            // Only include valid options
+            $option = is_numeric($key) ? $value : $key;
+            if ( ! in_array($option, $validOptions) and ! empty($validOptions)) {
+                continue;
+            }
+
+            // Is it an option or option-value pair(s)
             if (is_numeric($key)) {
                $output .= " --$value";
+            } elseif(is_array($value)) {
+                foreach ($value as $index => $option) {
+                    // Is it an option value or a pair of values
+                    if (is_string($index)) {
+                        $output .= " --$key " . $this->escapeCommand($index) . ' ' . $this->escapeCommand($option);
+                    } else {
+                        $output .= " --$key " . $this->escapeCommand($option);
+                    }
+                }
             } else {
                 $output .= " --$key " . $this->escapeCommand($value);
             }
         }
 
         return $output;
-    }
-
-    public function buildCommand($file)
-    {
-        $command = $this->escapeCommand($this->getConfig('bin', '/usr/bin/wkhtmltopdf'));
-        $command .= ' ' . $this->buildOptions($this->options);
-
-        foreach ($this->pages as $page) {
-            $command .= ' ' . $page['input'];
-            unset($page['input']);
-            $command .= $this->buildOptions($page);
-        }
-
-        return $command . ' ' . $file;
     }
 
     public function render()
