@@ -13,6 +13,10 @@ interface PdfInterface
 	 */
 	public function addPage($input, array $options = array());
 
+	public function setHeader();
+
+	public function setFooter();
+
 	/**
 	 * Write content without adding a new page
 	 *
