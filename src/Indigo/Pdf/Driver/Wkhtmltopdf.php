@@ -195,6 +195,13 @@ class Wkhtmltopdf extends Driver
         return $this;
     }
 
+    public function setHeader($input, array $options = array())
+    {
+        $options['header-html'] = $this->isHtml($input) ? $this->createTmpFile($input) : $input;
+        $options = array_merge($this->pageOptions, $options);
+        return $this;
+    }
+
     /**
      * {@inheritdoc}
      */
