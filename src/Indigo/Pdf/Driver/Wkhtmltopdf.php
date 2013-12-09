@@ -324,7 +324,7 @@ class Wkhtmltopdf extends Driver
         $tmpFile = $this->getPdf();
 
         if ($tmpFile) {
-            $file = $file ?: basename($tmpPath);
+            $file = $file ?: basename($tmpFile);
 
             header('Pragma: public');
             header('Expires: 0');
