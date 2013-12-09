@@ -130,6 +130,11 @@ class Wkhtmltopdf extends Driver
     protected $pages = array();
 
     /**
+     * @var string temporary PDF file
+     */
+    protected $tmpFile;
+
+    /**
      * Remove temporary PDF file and pages when script completes
      */
     public function __destruct()
