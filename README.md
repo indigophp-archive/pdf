@@ -40,3 +40,11 @@ $pdf->output('test.pdf');
 ```
 
 If you need to use the library itself, you can get the instance with ````$pdf->getInstance()````.
+
+TODO
+----
+
+* Add header and footer to the interface
+* Validate option values (Symfony Option Resolver?)
+* Add Dompdf support
+* Add mPDF support

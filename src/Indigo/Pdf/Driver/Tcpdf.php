@@ -17,15 +17,10 @@ class Tcpdf extends Driver
             'w_page'          => 'page',
         ),
         'options'  => array(
-            'orientation' => 'P',
-            'unit'        => 'mm',
-            'page-size'   => 'A4',
-            'encoding'    => 'UTF-8',
             'unicode'     => true,
             'diskcache'   => true,
             'pdfa'        => true,
         ),
-        'page_options' => array(),
     );
 
     public function __construct(array $config = array())
@@ -70,7 +65,7 @@ class Tcpdf extends Driver
 
     public function addPage($input, array $options = array())
     {
-        $options = array_merge($this->page_options, $options);
+        $options = array_merge($this->pageOptions, $options);
 
         $orientation = array_key_exists('orientation', $options) ? $options['orientation'] : '';
         $page_size = array_key_exists('page-size', $options) ? $options['page-size'] : '';
@@ -82,7 +77,7 @@ class Tcpdf extends Driver
 
     public function addToc(array $options = array())
     {
-        $options = array_merge($this->page_options, $options);
+        $options = array_merge($this->pageOptions, $options);
 
         $orientation = array_key_exists('orientation', $options) ? $options['orientation'] : '';
         $page_size = array_key_exists('page-size', $options) ? $options['page-size'] : '';
@@ -90,6 +85,11 @@ class Tcpdf extends Driver
         $this->instance->AddPage($orientation, $page_size, false, true);
 
         return $this->write($input);
+    }
+
+    public function setTitle($title)
+    {
+        $this->instance->SetTitle($title);
     }
 
     public function write($input)

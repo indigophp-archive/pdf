@@ -3,7 +3,7 @@
 namespace Indigo\Pdf\Driver;
 
 use Indigo\Pdf\Driver;
-use Symfony\Component\Process\Process;
+use Symfony\Component\Process\ProcessBuilder;
 
 class Wkhtmltopdf extends Driver
 {
@@ -16,7 +16,6 @@ class Wkhtmltopdf extends Driver
     protected $defaults = array(
         'bin'      => '/usr/bin/wkhtmltopdf',
         'tmp'      => '/tmp',
-        'escape'   => true,
         'version9' => false, //?
     );
 
@@ -140,69 +139,42 @@ class Wkhtmltopdf extends Driver
         }
     }
 
-    public function output($file = null)
+    /**
+     * {@inheritdoc}
+     */
+    public function setTitle($title)
     {
-        $tmpFile = $this->render();
-
-        if ($tmpFile) {
-            $file = $file ?: basename($tmpPath);
-
-            header('Pragma: public');
-            header('Expires: 0');
-            header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-            header('Content-Type: application/pdf');
-            header('Content-Transfer-Encoding: binary');
-            header('Content-Length: ' . filesize($tmpFile));
-            header("Content-Disposition: inline; filename=\"$file\"");
-
-            readfile($tmpFile);
-            return true;
-        }
-
-        return false;
+        $this->options['title'] = $title;
     }
 
-    public function download($file = null)
-    {
-        $this->output($file);
-
-        header("Content-Disposition: attachment; filename=\"$file\"");
-    }
-
-    public function save($file)
-    {
-        $tmpFile = $this->render();
-
-        if ($tmpFile) {
-            copy($tmpFile, $file);
-            return true;
-        }
-
-        return false;
-    }
-
-    public function raw()
-    {
-        return file_get_contents($this->getPdf());
-    }
-
+    /**
+     * {@inheritdoc}
+     */
     public function addPage($input, array $options = array())
     {
-        $options = array_merge($this->pageOptions, $options);
+        // $options = array_merge($this->pageOptions, $options);
         $options['input'] = $this->isHtml($input) ? $this->createTmpFile($input) : $input;
         $this->pages[] = $options;
 
         return $this;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function addToc(array $options = array())
     {
-        $options = array_merge($this->pageOptions, $options);
+        // $options = array_merge($this->pageOptions, $options);
         // $options['input'] = ($this->version9 ? '--' : '')."toc";
         $options['input'] = "toc";
         $this->pages[] = $options;
+
+        return $this;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function write($input)
     {
         $page = end($this->pages);
@@ -214,6 +186,31 @@ class Wkhtmltopdf extends Driver
         } else {
             return $this->addPage($input);
         }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function render()
+    {
+        $tmpFile = $this->createTmpFile();
+
+        $process = $this->buildProcess($tmpFile);
+
+        $process->run();
+
+        if ( ! $process->isSuccessful()) {
+            if ( ! file_exists($tmpFile) or filesize($tmpFile) === 0) {
+                throw new \RuntimeException('Could not run command:' . $process->getErrorOutput());
+            } else {
+                throw new \Exception('Error occured while creating PDF.');
+            }
+        } else {
+            $this->tmpFile = $tmpFile;
+        }
+
         return $this;
     }
 
@@ -238,33 +235,29 @@ class Wkhtmltopdf extends Driver
         return $tmpFile;
     }
 
-    protected function escapeCommand($command)
-    {
-        if ($this->getConfig('escape', true)) {
-            $command = escapeshellarg($command);
-        }
-
-        return $command;
-    }
-
     /**
      * Build command string
      * @param  string $file filename
      * @return string       command string
      */
-    public function buildCommand($file)
+    public function buildProcess($file)
     {
-        $command = $this->escapeCommand($this->getConfig('bin', '/usr/bin/wkhtmltopdf'));
-        $command .= $this->buildOptions($this->options, $this->validOptions);
-        $command .= $this->buildOptions($this->pageOptions, $this->validPageOptions);
+        $arguments = array_merge(
+            $this->buildArguments($this->options, array_merge($this->validOptions, $this->validPageOptions)),
+            $this->buildArguments($this->pageOptions, $this->validPageOptions)
+        );
 
         foreach ($this->pages as $page) {
-            $command .= ' ' . $page['input'];
+            $arguments = array_merge($arguments, array($page['input']));
             unset($page['input']);
-            $command .= $this->buildOptions($page, $this->validPageOptions);
+            $arguments = array_merge($arguments, $this->buildArguments($page, $this->validPageOptions));
         }
 
-        return $command . ' ' . $file;
+        $builder = new ProcessBuilder($arguments);
+        $builder->setPrefix($this->getConfig('bin', '/usr/bin/wkhtmltopdf'));
+        $builder->add($file);
+
+        return $builder->getProcess();
     }
 
     /**
@@ -273,9 +266,9 @@ class Wkhtmltopdf extends Driver
      * @param  array  $validOptions Valid parameter names
      * @return string               argument string
      */
-    protected function buildOptions(array $options = array(), array $validOptions = array())
+    protected function buildArguments(array $options = array(), array $validOptions = array())
     {
-        $output = '';
+        $arguments = array();
         foreach ($options as $key => $value) {
             // Only include valid options
             $option = is_numeric($key) ? $value : $key;
@@ -284,47 +277,123 @@ class Wkhtmltopdf extends Driver
             }
 
             // Is it an option or option-value pair(s)
-            if (is_numeric($key)) {
-               $output .= " --$value";
+            if (is_bool($value)) {
+               $arguments[] = "--$key";
             } elseif(is_array($value)) {
                 foreach ($value as $index => $option) {
+                    $arguments[] = "--$key";
+
                     // Is it an option value or a pair of values
                     if (is_string($index)) {
-                        $output .= " --$key " . $this->escapeCommand($index) . ' ' . $this->escapeCommand($option);
-                    } else {
-                        $output .= " --$key " . $this->escapeCommand($option);
+                        $arguments[] = $index;
                     }
+
+                    $arguments[] = $option;
                 }
             } else {
-                $output .= " --$key " . $this->escapeCommand($value);
+                $arguments[] = "--$key";
+                $arguments[] = $value;
             }
         }
 
-        return $output;
+        return $arguments;
     }
 
-    public function render()
+    /**
+     * Get commandline with arguments
+     *
+     * @param  string $file filename
+     * @return string
+     */
+    public function getCommandLine($file = null)
     {
-        $tmpFile = $this->createTmpFile();
-        $command = $this->buildCommand($tmpFile);
-
-        $process = new Process($command);
-        $process->setTimeout(3600);
-        $process->run();
-
-        if ( ! $process->isSuccessful()) {
-            if ( ! file_exists($tmpFile) or filesize($tmpFile) === 0) {
-                throw new \RuntimeException('Could not run command:' . $process->getErrorOutput());
-            } else {
-                throw new \Exception('Error occured while creating PDF.');
-            }
-        }
-
-        return $process->isSuccessful() ? $this->tmpFile = $tmpFile : false;
+        $process = $this->buildProcess($file);
+        return $process->getCommandLine();
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function output($file = null)
+    {
+        $tmpFile = $this->getPdf();
+
+        if ($tmpFile) {
+            $file = $file ?: basename($tmpPath);
+
+            header('Pragma: public');
+            header('Expires: 0');
+            header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+            header('Content-Type: application/pdf');
+            header('Content-Transfer-Encoding: binary');
+            header('Content-Length: ' . filesize($tmpFile));
+            header("Content-Disposition: inline; filename=\"$file\"");
+
+            readfile($tmpFile);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function download($file = null)
+    {
+        $this->output($file);
+
+        header("Content-Disposition: attachment; filename=\"$file\"");
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function save($file)
+    {
+        $tmpFile = $this->getPdf();
+
+        if ($tmpFile) {
+            copy($tmpFile, $file);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function raw()
+    {
+        return file_get_contents($this->getPdf());
+    }
+
+    /**
+     * Get path of temporary PDF file, render it if necessary
+     *
+     * @return string
+     */
     protected function getPdf()
     {
-        return $this->tmpFile ?: $this->render();
+        return $this->tmpFile ?: $this->render()->tmpFile;
+    }
+
+    /**
+     * Return the extended help of WkHtmlToPdf
+     *
+     * @return string
+     */
+    public function help()
+    {
+        $builder = new ProcessBuilder(array('--extended-help'));
+        $builder->setPrefix($this->getConfig('bin', '/usr/bin/wkhtmltopdf'));
+        $process = $builder->getProcess();
+
+        $process->run();
+
+        if ($process->isSuccessful()) {
+            return $process->getOutput();
+        }
     }
 }
