@@ -1,10 +1,8 @@
 <?php
 
-namespace Indigo\Pdf\Driver;
+namespace Indigo\Pdf\Adapter;
 
-use Indigo\Pdf\Driver;
-
-class Tcpdf extends Driver
+class Tcpdf extends AbstractAdapter
 {
     /**
      * @var array pdf driver config defaults
@@ -103,6 +101,16 @@ class Tcpdf extends Driver
         } else {
             $this->instance->write($input);
         }
+
+        return $this;
+    }
+
+    public function setMargin($left = 0, $top = 0, $right = -1, $bottom = null)
+    {
+        is_numeric($left) and $this->instance->SetLeftMargin($left);
+        is_numeric($top) and $this->instance->SetTopMargin($top);
+        is_numeric($right) and $this->instance->SetRightMargin($right == -1 ? $left : $right);
+        is_numeric($bottom) and $this->instance->SetAutoPageBreak(true, $bottom);
 
         return $this;
     }

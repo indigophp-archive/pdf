@@ -1,9 +1,3 @@
-###SublimeText###
-# SublimeText project files
-*.sublime-workspace
-*.sublime-project
-
-###Composer###
 tests/
 vendor/
 composer.lock

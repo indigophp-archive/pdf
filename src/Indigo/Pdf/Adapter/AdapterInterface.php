@@ -1,8 +1,8 @@
 <?php
 
-namespace Indigo\Pdf;
+namespace Indigo\Pdf\Adapter;
 
-interface PdfInterface
+interface AdapterInterface
 {
     /**
      * Add a page with specific content
@@ -35,6 +35,17 @@ interface PdfInterface
      * @return PdfInterface
      */
     public function addToc(array $options = array());
+
+    /**
+     * Set margins of the document
+     *
+     * @param integer $left
+     * @param integer $top
+     * @param integer $right
+     * @param integer $bottom
+     * @return PdfInterface
+     */
+    public function setMargin($left = 0, $top = 0, $right = -1, $bottom = 0);
 
     /**
      * Render the file itself
