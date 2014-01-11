@@ -9,7 +9,7 @@ interface AdapterInterface
      *
      * @param  string $input   HTML code or URL
      * @param  array  $options page options
-     * @return PdfInterface
+     * @return AdapterInterface
      */
     public function addPage($input, array $options = array());
 
@@ -24,7 +24,7 @@ interface AdapterInterface
      * Write content without adding a new page
      *
      * @param  string $input content to write
-     * @return PdfInterface
+     * @return AdapterInterface
      */
     public function write($input);
 
@@ -32,7 +32,7 @@ interface AdapterInterface
      * Add Table of Content
      *
      * @param  array  $options page options
-     * @return PdfInterface
+     * @return AdapterInterface
      */
     public function addToc(array $options = array());
 
@@ -43,14 +43,14 @@ interface AdapterInterface
      * @param integer $top
      * @param integer $right
      * @param integer $bottom
-     * @return PdfInterface
+     * @return AdapterInterface
      */
     public function setMargin($left = 0, $top = 0, $right = -1, $bottom = 0);
 
     /**
      * Render the file itself
      *
-     * @return PdfInterface
+     * @return AdapterInterface
      */
     public function render();
 
