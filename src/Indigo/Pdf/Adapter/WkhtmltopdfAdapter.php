@@ -29,6 +29,7 @@ class WkhtmltopdfAdapter extends AbstractAdapter
      * @var array
      */
     protected $optionalOptions = array(
+        'page-size'          => 'string',
         'dpi'                => 'integer',
         'grayscale'          => 'bool',
         'lowquality'         => 'bool',
@@ -38,8 +39,8 @@ class WkhtmltopdfAdapter extends AbstractAdapter
         'margin-left'        => array('integer', 'string'),
         'margin-right'       => array('integer', 'string'),
         'margin-top'         => array('integer', 'string'),
-        'page-height'        => array('integer', 'string'),
-        'page-width'         => array('integer', 'string'),
+        'page-height'        => array('string', 'integer'),
+        'page-width'         => array('string', 'integer'),
         'no-pdf-compression' => 'bool',
         'title'              => 'string',
     );
@@ -146,21 +147,20 @@ class WkhtmltopdfAdapter extends AbstractAdapter
     {
         parent::setDefaultOptions($resolver);
 
-        $normalizers = array_fill_keys(
-            array(
-                'margin-bottom',
-                'margin-left',
-                'margin-right',
-                'margin-top',
-                'page-height',
-                'page-width',
-            ),
-            $this->unitNormalizer()
-        );
+        $units = $this->filterUnits($this->optionalOptions);
+
+        $normalizers = array_fill_keys($units, $this->unitNormalizer());
 
         $normalizers['orientation'] = $this->orientationNormalizer();
 
+        $defaults = array_fill_keys($units, 10);
+
+        $defaults['page-size'] = function (Options $options) {
+            return $options['size'];
+        };
+
         $resolver
+            ->setDefaults($defaults)
             ->setOptional(array_keys($this->optionalOptions))
             ->setAllowedTypes($this->optionalOptions)
             ->setOptional(array_keys($this->optionalPageOptions))
@@ -178,15 +178,16 @@ class WkhtmltopdfAdapter extends AbstractAdapter
     {
         parent::setDefaultPageOptions($resolver);
 
+        $units = $this->filterUnits($this->optionalPageOptions);
+
+        $defaults = array_fill_keys($units, 0);
+
         $resolver
+            ->setDefaults($defaults)
             ->setOptional(array_keys($this->optionalPageOptions))
             ->setAllowedTypes($this->optionalPageOptions)
             ->setAllowedValues(array(
                 'load-error-handling' => array('abort', 'ignore', 'skip')
-            ))
-            ->setNormalizers(array(
-                'footer-spacing' => $this->unitNormalizer(),
-                'header-spacing' => $this->unitNormalizer(),
             ));
 
     }
@@ -227,6 +228,15 @@ class WkhtmltopdfAdapter extends AbstractAdapter
 
             return $value;
         };
+    }
+
+    private function filterUnits(array $options)
+    {
+        $units = array_filter($options, function ($item) {
+            return $item == array('integer', 'string');
+        });
+
+        return array_keys($units);
     }
 
     /**
@@ -357,9 +367,13 @@ class WkhtmltopdfAdapter extends AbstractAdapter
      */
     public function buildProcess($file)
     {
+        $validArguments = array_merge($this->optionalOptions, $this->optionalPageOptions);
         $arguments = array_merge(
-            $this->buildArguments($this->options),
-            $this->buildArguments($this->pageOptions)
+            $this->buildArguments(array_intersect_key($this->options, $validArguments)),
+            $this->buildArguments(array_intersect_key(
+                $this->pageOptions,
+                $this->optionalPageOptions
+            ))
         );
 
         foreach ($this->pages as $page) {
@@ -430,15 +444,11 @@ class WkhtmltopdfAdapter extends AbstractAdapter
         if ($tmpFile) {
             $file = $file ?: basename($tmpFile);
 
-            header('Pragma: public');
-            header('Expires: 0');
-            header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-            header('Content-Type: application/pdf');
-            header('Content-Transfer-Encoding: binary');
-            header('Content-Length: ' . filesize($tmpFile));
+            $this->sendHeaders($tmpFile);
             header("Content-Disposition: inline; filename=\"$file\"");
 
             readfile($tmpFile);
+
             return true;
         }
 
@@ -450,9 +460,35 @@ class WkhtmltopdfAdapter extends AbstractAdapter
      */
     public function download($file = null)
     {
-        $this->output($file);
+        $tmpFile = $this->getPdf();
 
-        header("Content-Disposition: attachment; filename=\"$file\"");
+        if ($tmpFile) {
+            $file = $file ?: basename($tmpFile);
+
+            $this->sendHeaders($tmpFile);
+            header("Content-Disposition: attachment; filename=\"$file\"");
+
+            readfile($tmpFile);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Send PDF file headers
+     *
+     * @param  string $tmpFile Temp file path
+     */
+    protected function sendHeaders($tmpFile)
+    {
+        header('Pragma: public');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Content-Type: application/pdf');
+        header('Content-Transfer-Encoding: binary');
+        header('Content-Length: ' . filesize($tmpFile));
     }
 
     /**
