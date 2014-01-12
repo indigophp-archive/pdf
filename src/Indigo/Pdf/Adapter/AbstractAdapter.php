@@ -88,7 +88,7 @@ abstract class AbstractAdapter implements AdapterInterface
         $resolver
             ->setDefaults(array(
                 'orientation' => 'P',
-                'page-size'   => 'A4',
+                'size'        => 'A4',
                 'unit'        => 'mm',
                 'encoding'    => 'UTF-8',
             ))
@@ -97,7 +97,7 @@ abstract class AbstractAdapter implements AdapterInterface
             ))
             ->setAllowedTypes(array(
                 'orientation' => 'string',
-                'page-size'   => 'string',
+                'size'        => 'string',
                 'unit'        => 'string',
                 'encoding'    => 'string',
             ));
