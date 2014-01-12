@@ -163,6 +163,8 @@ class WkhtmltopdfAdapter extends AbstractAdapter
         $resolver
             ->setOptional(array_keys($this->optionalOptions))
             ->setAllowedTypes($this->optionalOptions)
+            ->setOptional(array_keys($this->optionalPageOptions))
+            ->setAllowedTypes($this->optionalPageOptions)
             ->setNormalizers($normalizers)
             ->setAllowedValues(array(
                 'orientation' => array('Portrait', 'Landscape')
@@ -241,7 +243,7 @@ class WkhtmltopdfAdapter extends AbstractAdapter
     public function addPage($input, array $options = array())
     {
         $options = $this->resolvePageOptions($options);
-        $options['input'] = $this->isHtml($input) ? $this->createTmpFile($input) : $input;
+        $options['input'] = $this->isFile($input) ? $input : $this->createTmpFile($input);
         $this->pages[] = $options;
 
         return $this;
@@ -269,7 +271,7 @@ class WkhtmltopdfAdapter extends AbstractAdapter
 
         if (in_array($page['input'], $this->tmpFiles)) {
             $content = file_get_contents($page['input']);
-            $content .= $this->isHtml($input) ? $input : file_get_contents($input);
+            $content .= $this->isFile($input) ? file_get_contents($input) : $input;
             file_put_contents($page['input'], $content);
         } else {
             return $this->addPage($input);
@@ -278,6 +280,9 @@ class WkhtmltopdfAdapter extends AbstractAdapter
         return $this;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function setMargin($left = 0, $top = 0, $right = -1, $bottom = 0)
     {
         $options = array(
@@ -294,8 +299,9 @@ class WkhtmltopdfAdapter extends AbstractAdapter
 
     public function setHeader($input, array $options = array())
     {
-        $options['header-html'] = $this->isHtml($input) ? $this->createTmpFile($input) : $input;
+        $options['header-html'] = $this->isFile($input) ? $input : $this->createTmpFile($input);
         $this->setPageOptions($options);
+
         return $this;
     }
 
@@ -310,8 +316,8 @@ class WkhtmltopdfAdapter extends AbstractAdapter
 
         $process->run();
 
-        if ( ! $process->isSuccessful()) {
-            if ( ! file_exists($tmpFile) or filesize($tmpFile) === 0) {
+        if (!$process->isSuccessful()) {
+            if (!file_exists($tmpFile) or filesize($tmpFile) === 0) {
                 throw new \RuntimeException('Could not run command:' . $process->getErrorOutput());
             } else {
                 throw new \Exception('Error occured while creating PDF.');
@@ -326,16 +332,15 @@ class WkhtmltopdfAdapter extends AbstractAdapter
     /**
      * Create a tmp file, optionally with given content
      *
-     * @param  string|null $content the file content
-     * @return string               the path to the created file
+     * @param  mixed $content The file content
+     * @return string The path to the created file
      */
     protected function createTmpFile($content = null)
     {
         $tmpPath = $this->getConfig('tmp', sys_get_temp_dir());
         $tmpFile = tempnam($tmpPath,'tmp_WkHtmlToPdf_');
 
-        if ( ! is_null($content)) {
-            rename($tmpFile, ($tmpFile .= '.html'));
+        if (!is_null($content)) {
             file_put_contents($tmpFile, $content);
         }
 
@@ -345,21 +350,22 @@ class WkhtmltopdfAdapter extends AbstractAdapter
     }
 
     /**
-     * Build command string
+     * Build command
+     *
      * @param  string $file filename
-     * @return string       command string
+     * @return Process Process object
      */
     public function buildProcess($file)
     {
         $arguments = array_merge(
-            $this->buildArguments($this->options, array_merge($this->validOptions, $this->validPageOptions)),
-            $this->buildArguments($this->pageOptions, $this->validPageOptions)
+            $this->buildArguments($this->options),
+            $this->buildArguments($this->pageOptions)
         );
 
         foreach ($this->pages as $page) {
             $arguments = array_merge($arguments, array($page['input']));
             unset($page['input']);
-            $arguments = array_merge($arguments, $this->buildArguments($page, $this->validPageOptions));
+            $arguments = array_merge($arguments, $this->buildArguments($page));
         }
 
         $builder = new ProcessBuilder($arguments);
@@ -371,22 +377,16 @@ class WkhtmltopdfAdapter extends AbstractAdapter
 
     /**
      * Build command line options from array
+     *
      * @param  array  $options      Input parameters
-     * @param  array  $validOptions Valid parameter names
-     * @return string               argument string
+     * @return string               Argument string
      */
-    protected function buildArguments(array $options = array(), array $validOptions = array())
+    protected function buildArguments(array $options = array())
     {
         $arguments = array();
         foreach ($options as $key => $value) {
-            // Only include valid options
-            $option = is_numeric($key) ? $value : $key;
-            if ( ! in_array($option, $validOptions) and ! empty($validOptions)) {
-                continue;
-            }
-
             // Is it an option or option-value pair(s)
-            if (is_bool($value)) {
+            if (is_bool($value) and $value == true) {
                $arguments[] = "--$key";
             } elseif(is_array($value)) {
                 foreach ($value as $index => $option) {
