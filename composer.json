@@ -16,8 +16,6 @@
     },
     "require-dev": {
         "tecnick.com/tcpdf": "dev-master",
-        "dompdf/dompdf": "dev-master",
-        "mpdf/mpdf": "dev-master",
         "h4cc/wkhtmltopdf-amd64": "dev-master"
     },
     "suggest": {
