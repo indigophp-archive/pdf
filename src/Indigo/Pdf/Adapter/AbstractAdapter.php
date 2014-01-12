@@ -251,22 +251,4 @@ abstract class AbstractAdapter implements AdapterInterface
             return $default;
         }
     }
-
-    protected function map(array $map = array(), array $values = array())
-    {
-        foreach ($map as $key => $value) {
-            if (array_key_exists($key, $values)) {
-                if (is_array($value)) {
-                    $values[$key] = str_replace($value[0], $value[1], $values[$key]);
-                }
-                else
-                {
-                    $values[$value] = $values[$key];
-                    unset($values[$key]);
-                }
-            }
-        }
-
-        return $values;
-    }
 }
