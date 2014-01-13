@@ -2,7 +2,10 @@
 
 namespace Indigo\Pdf\Adapter;
 
-class Tcpdf extends AbstractAdapter
+use Symfony\Component\OptionsResolver\OptionsResolverInterface;
+use Symfony\Component\OptionsResolver\Options;
+
+class TcpdfAdapter extends AbstractAdapter
 {
     /**
      * @var array pdf driver config defaults
@@ -21,78 +24,132 @@ class Tcpdf extends AbstractAdapter
         ),
     );
 
-    public function __construct(array $config = array())
+    public function __construct(array $options = array(), array $config = array())
     {
-        parent::__construct($config);
+        $this->setOptions($options);
+        $this->setConfig($config);
 
-        $args = array(
-            $this->getConfig('orientation', 'P'),
-            $this->getConfig('unit', 'mm'),
-            $this->getConfig('page-size', 'A4'),
-            $this->getConfig('unicode', true),
-            $this->getConfig('encoding', 'UTF-8'),
-            $this->getConfig('diskcache', false),
-            $this->getConfig('pdfa', false),
+        $this->instance = new \TCPDF(
+            $this->options['orientation'],
+            $this->options['unit'],
+            $this->options['size'],
+            $this->options['unicode'],
+            $this->options['encoding'],
+            $this->options['diskcache'],
+            $this->options['pdfa']
         );
 
-        $instance = new \ReflectionClass('\TCPDF');
-        $this->instance = $instance->newInstanceArgs($args);
-        $this->instance->setLanguageArray($this->getConfig('lang', array()));
+        $lang = array(
+            $this->config['a_meta_charset'],
+            $this->config['a_meta_dir'],
+            $this->config['a_meta_language'],
+            $this->config['w_page'],
+        );
+
+        $this->instance->setLanguageArray($lang);
     }
 
-
-    public function output($file = 'doc.pdf')
+    /**
+     * {@inheritdoc}
+     */
+    protected function setDefaultOptions(OptionsResolverInterface $resolver)
     {
-        return $this->instance->Output($file);
+        parent::setDefaultOptions($resolver);
+
+        $resolver
+            ->setDefaults(array(
+                'unicode'   => true,
+                'diskcache' => false,
+                'pdfa'      => false,
+            ))
+            ->setAllowedTypes(array(
+                'unicode'   => 'bool',
+                'diskcache' => 'bool',
+                'pdfa'      => 'bool',
+            ));
     }
 
-    public function download($file = 'doc.pdf')
+    /**
+     * {@inheritdoc}
+     */
+    protected function setDefaultPageOptions(OptionsResolverInterface $resolver)
     {
-        return $this->instance->Output($file, 'D');
+        parent::setDefaultPageOptions($resolver);
+
+        $resolver
+            ->setDefaults(array(
+                'orientation' => $this->options['orientation'],
+                'size'        => $this->options['size'],
+            ))
+            ->setAllowedValues(array(
+                'orientation' => array('P', 'L'),
+            ))
+            ->setAllowedTypes(array(
+                'orientation' => 'string',
+                'size'        => 'string',
+            ));
     }
 
-    public function save($file)
+    /**
+     * {@inheritdoc}
+     */
+    protected function setDefaultConfig(OptionsResolverInterface $resolver)
     {
-        return $this->instance->Output($file, 'F');
+        parent::setDefaultConfig($resolver);
+
+        $resolver
+            ->setDefaults(array(
+                'a_meta_charset'  => 'UTF-8',
+                'a_meta_dir'      => 'ltr',
+                'a_meta_language' => 'en',
+                'w_page'          => 'page',
+            ))
+            ->setAllowedTypes(array(
+                'a_meta_charset'  => 'string',
+                'a_meta_dir'      => 'string',
+                'a_meta_language' => 'string',
+                'w_page'          => 'string',
+            ));
     }
 
-    public function raw()
-    {
-        return $this->instance->Output(null, 'S');
-    }
-
+    /**
+     * {@inheritdoc}
+     */
     public function addPage($input, array $options = array())
     {
-        $options = array_merge($this->pageOptions, $options);
+        $options = $this->resolvePageOptions($options);
 
-        $orientation = array_key_exists('orientation', $options) ? $options['orientation'] : '';
-        $page_size = array_key_exists('page-size', $options) ? $options['page-size'] : '';
-
-        $this->instance->AddPage($orientation, $page_size);
+        $this->instance->AddPage($options['orientation'], $options['size']);
 
         return $this->write($input);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function addToc(array $options = array())
     {
-        $options = array_merge($this->pageOptions, $options);
+        $options = $this->resolvePageOptions($options);
 
-        $orientation = array_key_exists('orientation', $options) ? $options['orientation'] : '';
-        $page_size = array_key_exists('page-size', $options) ? $options['page-size'] : '';
+        $this->instance->AddPage($options['orientation'], $options['size'], false, true);
 
-        $this->instance->AddPage($orientation, $page_size, false, true);
-
-        return $this->write($input);
+        return $this;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function setTitle($title)
     {
         $this->instance->SetTitle($title);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function write($input)
     {
-        if (is_file($input) or preg_match('/(https?|file):\/\//', $input)) {
+        if ($this->isFile($input)) {
             $input = file_get_contents($input);
         }
 
@@ -105,6 +162,9 @@ class Tcpdf extends AbstractAdapter
         return $this;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function setMargin($left = 0, $top = 0, $right = -1, $bottom = null)
     {
         is_numeric($left) and $this->instance->SetLeftMargin($left);
@@ -115,8 +175,43 @@ class Tcpdf extends AbstractAdapter
         return $this;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function render()
     {
         return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function output($file = 'doc.pdf')
+    {
+        return $this->instance->Output($file);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function download($file = 'doc.pdf')
+    {
+        return $this->instance->Output($file, 'D');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function save($file)
+    {
+        return $this->instance->Output($file, 'F');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function raw()
+    {
+        return $this->instance->Output(null, 'S');
     }
 }
