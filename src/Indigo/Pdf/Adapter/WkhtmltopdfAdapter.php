@@ -189,7 +189,6 @@ class WkhtmltopdfAdapter extends AbstractAdapter
             ->setAllowedValues(array(
                 'load-error-handling' => array('abort', 'ignore', 'skip')
             ));
-
     }
 
     /**
