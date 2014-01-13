@@ -47,6 +47,12 @@ $pdf->output('test.pdf');
 **Note:** This is only a basic interface. If you need advanced usage, get the library itself and use that: `$pdf->getInstance()`
 
 
+## Library documentation
+
+* [WkHTMLtoPDF](http://madalgo.au.dk/~jakobt/wkhtmltoxdoc/wkhtmltopdf_0.10.0_rc2-doc.html) (This is the best I found)
+* [TCPDF](http://www.tcpdf.org/)
+
+
 ## Testing
 
 ``` bash
