@@ -1,33 +1,38 @@
-Indigo PDF
-==========
+# Indigo PDF
 
-PDF adapters for PDF libraries.
+**PDF adapters for PDF libraries.**
 
 Supported libraries:
 * WkHTMLtoPDF (native)
 * TCPDF
-* DOMPDF (soon)
-* mPDF (soon)
 
-The adapters only implement a basic interface, so any of these adapters can be used in a DiC.
 
-Usage
------
+## Install
 
-```php
+Via Composer
 
-use Indigo\Pdf\Driver\Tcpdf as Pdf;
+``` json
+{
+    "require": {
+        "indigophp/pdf": "dev-master"
+    }
+}
+```
+
+
+## Usage
+
+``` php
+use Indigo\Pdf\Adapter\TcpdfAdapter as Pdf;
 
 // Setup config array
-$config = array(
-	'options' => array(
-		'orientation' => 'P',
-		'page-size'   => 'A4'
-	)
+$options = array(
+    'orientation' => 'P',
+    'size'        => 'A4'
 );
 
 // Instantiate adapter
-$pdf = new Pdf($config);
+$pdf = new Pdf($options);
 
 // Add a page
 $pdf->addPage('test.html', array('orientation' => 'L'));
@@ -39,12 +44,27 @@ $pdf->save('test.pdf');
 $pdf->output('test.pdf');
 ```
 
-If you need to use the library itself, you can get the instance with ````$pdf->getInstance()````.
+**Note:** This is only a basic interface. If you need advanced usage, get the library itself and use that: `$pdf->getInstance()`
 
-TODO
-----
 
-* Add header and footer to the interface
-* Validate option values (Symfony Option Resolver?)
-* Add Dompdf support
-* Add mPDF support
+## Testing
+
+``` bash
+$ phpunit
+```
+
+
+## Contributing
+
+Please see [CONTRIBUTING](https://github.com/indigophp/pdf/blob/develop/CONTRIBUTING.md) for details.
+
+
+## Credits
+
+- [Márk Sági-Kazár](https://github.com/sagikazarmark)
+- [All Contributors](https://github.com/indigophp/pdf/contributors)
+
+
+## License
+
+The MIT License (MIT). Please see [License File](https://github.com/indigophp/pdf/blob/develop/LICENSE) for more information.
