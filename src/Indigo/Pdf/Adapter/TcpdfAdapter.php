@@ -3,7 +3,6 @@
 namespace Indigo\Pdf\Adapter;
 
 use Symfony\Component\OptionsResolver\OptionsResolverInterface;
-use Symfony\Component\OptionsResolver\Options;
 
 class TcpdfAdapter extends AbstractAdapter
 {

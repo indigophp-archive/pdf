@@ -159,7 +159,7 @@ abstract class AbstractAdapter implements AdapterInterface
      * Get a specific or all config items
      *
      * @param  string $key     Config key
-     * @param  mixed  $default Default return value if key is not found
+     * @param  string  $default Default return value if key is not found
      * @return mixed Key, default value or array of all config items
      */
     public function getConfig($key = null, $default = null)
