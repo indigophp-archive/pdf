@@ -214,7 +214,7 @@ class WkhtmltopdfAdapter extends AbstractAdapter
     /**
      * Normalize orientation value
      *
-     * @return Closure
+     * @return \Closure
      */
     private function orientationNormalizer()
     {
@@ -362,7 +362,7 @@ class WkhtmltopdfAdapter extends AbstractAdapter
      * Build command
      *
      * @param  string $file filename
-     * @return Process Process object
+     * @return \Symfony\Component\Process\Process Process object
      */
     public function buildProcess($file)
     {

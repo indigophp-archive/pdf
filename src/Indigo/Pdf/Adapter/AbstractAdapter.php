@@ -225,6 +225,9 @@ abstract class AbstractAdapter implements AdapterInterface
         return $this->instance ?: $this;
     }
 
+    /**
+     * @param string $string
+     */
     protected function isHtml($string)
     {
         return preg_match("/<[^<]+>/", $string);
@@ -241,6 +244,9 @@ abstract class AbstractAdapter implements AdapterInterface
         return false;
     }
 
+    /**
+     * @param string $key
+     */
     protected function arrGet(array $array, $key = null, $default = null)
     {
         if (is_null($key)) {
