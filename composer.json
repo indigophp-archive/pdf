@@ -20,8 +20,6 @@
     },
     "suggest": {
         "tecnick.com/tcpdf": "TCPDF is a PHP class for generating PDF documents",
-        "dompdf/dompdf": "DOMPDF is a CSS 2.1 compliant HTML to PDF converter",
-        "mpdf/mpdf": "A PHP class to generate PDF files from HTML with Unicode/UTF-8 and CJK support",
         "h4cc/wkhtmltopdf-amd64": "Convert html to pdf using webkit (qtwebkit). Static linked linux binary for amd64 systems."
     },
     "autoload": {
