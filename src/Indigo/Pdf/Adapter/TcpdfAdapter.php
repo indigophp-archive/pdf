@@ -166,10 +166,10 @@ class TcpdfAdapter extends AbstractAdapter
      */
     public function setMargin($left = 0, $top = 0, $right = -1, $bottom = null)
     {
-        is_numeric($left) and $this->instance->SetLeftMargin($left);
-        is_numeric($top) and $this->instance->SetTopMargin($top);
-        is_numeric($right) and $this->instance->SetRightMargin($right == -1 ? $left : $right);
-        is_numeric($bottom) and $this->instance->SetAutoPageBreak(true, $bottom);
+        $this->instance->SetLeftMargin($left);
+        $this->instance->SetTopMargin($top);
+        $this->instance->SetRightMargin($right == -1 ? $left : $right);
+        $this->instance->SetAutoPageBreak(true, $bottom);
 
         return $this;
     }
