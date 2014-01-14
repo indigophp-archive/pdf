@@ -1,6 +1,7 @@
 {
     "name": "indigophp/pdf",
     "description": "PDF adapter for PDF libraries",
+    "homepage": "https://indigophp.com",
     "license": "MIT",
     "authors": [
         {
