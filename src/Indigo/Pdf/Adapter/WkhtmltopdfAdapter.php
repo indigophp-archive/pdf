@@ -394,31 +394,38 @@ class WkhtmltopdfAdapter extends AbstractAdapter
      * @param  array  $options      Input parameters
      * @return string               Argument string
      */
-    protected function buildArguments(array $options = array())
+    protected function buildArguments(array $options = array(), $recursive = false)
     {
-        $arguments = array();
+        static $arguments = array();
+
         foreach ($options as $key => $value) {
             if ($value === false) {
                 continue;
             }
 
-            $arguments[] = "--$key";
+            if ($key = $this->validateArgumentKey($key, $recursive)) {
+                $arguments[] = $key;
+            }
 
             if(is_array($value)) {
-                foreach ($value as $index => $option) {
-                    // Is it an option value or a pair of values
-                    if (is_string($index)) {
-                        $arguments[] = $index;
-                    }
-
-                    $arguments[] = $option;
-                }
-            } else {
+                $this->buildArguments($value, true);
+            } elseif($value !== true) {
                 $arguments[] = $value;
             }
         }
 
         return $arguments;
+    }
+
+    private function validateArgumentKey($key, $prefix = false)
+    {
+        if (is_string($key)) {
+            $prefix or $key = '--' . $key;
+        } else {
+            $key = false;
+        }
+
+        return $key;
     }
 
     /**
