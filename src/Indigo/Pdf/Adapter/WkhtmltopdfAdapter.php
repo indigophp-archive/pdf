@@ -398,13 +398,14 @@ class WkhtmltopdfAdapter extends AbstractAdapter
     {
         $arguments = array();
         foreach ($options as $key => $value) {
-            // Is it an option or option-value pair(s)
-            if (is_bool($value)) {
-               $value == true and $arguments[] = "--$key";
-            } elseif(is_array($value)) {
-                foreach ($value as $index => $option) {
-                    $arguments[] = "--$key";
+            if ($value === false) {
+                continue;
+            }
 
+            $arguments[] = "--$key";
+
+            if(is_array($value)) {
+                foreach ($value as $index => $option) {
                     // Is it an option value or a pair of values
                     if (is_string($index)) {
                         $arguments[] = $index;
@@ -413,7 +414,6 @@ class WkhtmltopdfAdapter extends AbstractAdapter
                     $arguments[] = $option;
                 }
             } else {
-                $arguments[] = "--$key";
                 $arguments[] = $value;
             }
         }
