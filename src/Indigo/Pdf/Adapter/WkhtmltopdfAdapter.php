@@ -399,8 +399,8 @@ class WkhtmltopdfAdapter extends AbstractAdapter
         $arguments = array();
         foreach ($options as $key => $value) {
             // Is it an option or option-value pair(s)
-            if (is_bool($value) and $value == true) {
-               $arguments[] = "--$key";
+            if (is_bool($value)) {
+               $value == true and $arguments[] = "--$key";
             } elseif(is_array($value)) {
                 foreach ($value as $index => $option) {
                     $arguments[] = "--$key";
