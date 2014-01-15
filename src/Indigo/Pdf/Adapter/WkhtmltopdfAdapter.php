@@ -392,31 +392,40 @@ class WkhtmltopdfAdapter extends AbstractAdapter
      * Build command line options from array
      *
      * @param  array  $options      Input parameters
+     * @param  bool   $recursive    Should NEVER been set manually
      * @return string               Argument string
      */
     protected function buildArguments(array $options = array(), $recursive = false)
     {
-        static $arguments = array();
+        $arguments = array();
 
         foreach ($options as $key => $value) {
-            if ($value === false) {
+            // Validate value and format it
+            if (($value = $this->validateArgumentValue($value)) === false or is_int($key)) {
                 continue;
             }
 
+            // Validate value and format it
             if ($key = $this->validateArgumentKey($key, $recursive)) {
                 $arguments[] = $key;
             }
 
+            // validateArgumentValue returns an array of valid values
             if(is_array($value)) {
-                $this->buildArguments($value, true);
-            } elseif($value !== true) {
-                $arguments[] = $value;
+                $arguments = array_merge($arguments, $value);
             }
         }
 
         return $arguments;
     }
 
+    /**
+     * Validate key and prefix it if needed
+     *
+     * @param  string  $key
+     * @param  boolean $prefix
+     * @return string
+     */
     private function validateArgumentKey($key, $prefix = false)
     {
         if (is_string($key)) {
@@ -426,6 +435,23 @@ class WkhtmltopdfAdapter extends AbstractAdapter
         }
 
         return $key;
+    }
+
+    /**
+     * Validate arguments and return an array of validated ones
+     *
+     * @param  mixed $value
+     * @return array
+     */
+    private function validateArgumentValue($value)
+    {
+        if(is_array($value)) {
+            $value = $this->buildArguments($value, true);
+        } elseif(!is_bool($value)) {
+            $value = array($value);
+        }
+
+        return $value;
     }
 
     /**
