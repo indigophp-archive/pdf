@@ -395,24 +395,22 @@ class WkhtmltopdfAdapter extends AbstractAdapter
      * @param  bool   $recursive    Should NEVER been set manually
      * @return string               Argument string
      */
-    protected function buildArguments(array $options = array(), $recursive = false)
+    protected function buildArguments(array $options = array())
     {
         $arguments = array();
 
         foreach ($options as $key => $value) {
             // Validate value and format it
-            if (($value = $this->validateArgumentValue($value)) === false or is_int($key)) {
+            if ($value === false or is_int($key)) {
                 continue;
             }
 
-            // Validate value and format it
-            if ($key = $this->validateArgumentKey($key, $recursive)) {
-                $arguments[] = $key;
-            }
+            $arguments[] = "--$key";
 
-            // validateArgumentValue returns an array of valid values
-            if(is_array($value)) {
-                $arguments = array_merge($arguments, $value);
+            if (is_array($value)) {
+                $arguments = array_merge($arguments, $this->buildArrayArguments($value));
+            } elseif ($value !== true) {
+                $arguments[] = $value;
             }
         }
 
@@ -420,38 +418,24 @@ class WkhtmltopdfAdapter extends AbstractAdapter
     }
 
     /**
-     * Validate key and prefix it if needed
+     * Build array arguments
      *
-     * @param  string  $key
-     * @param  boolean $prefix
-     * @return string
-     */
-    private function validateArgumentKey($key, $prefix = false)
-    {
-        if (is_string($key)) {
-            $prefix or $key = '--' . $key;
-        } else {
-            $key = false;
-        }
-
-        return $key;
-    }
-
-    /**
-     * Validate arguments and return an array of validated ones
-     *
-     * @param  mixed $value
+     * @param  array $value
      * @return array
      */
-    private function validateArgumentValue($value)
+    private function buildArrayArguments($value)
     {
-        if(is_array($value)) {
-            $value = $this->buildArguments($value, true);
-        } elseif(!is_bool($value)) {
-            $value = array($value);
+        $arguments = array();
+
+        foreach ($value as $index => $option) {
+            if (is_string($index)) {
+                $arguments[] = $index;
+            }
+
+            $arguments[] = $option;
         }
 
-        return $value;
+        return $arguments;
     }
 
     /**
