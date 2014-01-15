@@ -538,7 +538,7 @@ class WkhtmltopdfAdapter extends AbstractAdapter
     public function help()
     {
         $builder = new ProcessBuilder(array('--extended-help'));
-        $builder->setPrefix($this->getConfig('bin', '/usr/bin/wkhtmltopdf'));
+        $builder->setPrefix($this->config['bin']);
         $process = $builder->getProcess();
 
         $process->run();
