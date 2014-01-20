@@ -348,6 +348,7 @@ class WkhtmltopdfAdapter extends AbstractAdapter
     {
         $tmpPath = $this->getConfig('tmp', sys_get_temp_dir());
         $tmpFile = tempnam($tmpPath,'tmp_WkHtmlToPdf_');
+        rename($tmpFile, $tmpFile .= '.html');
 
         if (!is_null($content)) {
             file_put_contents($tmpFile, $content);
